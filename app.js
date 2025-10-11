@@ -20,7 +20,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
-const buildPath = path.join(__dirname, '../build');
+const buildPath = path.join(__dirname, './build');
 app.use(express.static(buildPath));
 
 app.get('*', (req, res) => {
