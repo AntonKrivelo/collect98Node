@@ -26,14 +26,6 @@ app.get('/products/:id', cors(), function (req, res, next) {
   res.json({ msg: 'This is CORS-enabled for a Single Route' });
 });
 
-app.use(
-  '/',
-  createProxyMiddleware({
-    target: 'http://localhost:3000',
-    changeOrigin: true,
-  }),
-);
-
 app.use(function (req, res, next) {
   next(createError(404));
 });
@@ -45,5 +37,13 @@ app.use(function (err, req, res, next) {
   res.status(err.status || 500);
   res.json({ error: err.message });
 });
+
+app.use(
+  '/',
+  createProxyMiddleware({
+    target: 'http://localhost:3000',
+    changeOrigin: true,
+  }),
+);
 
 module.exports = app;
