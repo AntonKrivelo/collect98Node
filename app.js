@@ -20,12 +20,12 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
-const buildPath = path.join(__dirname, '../build');
-app.use(express.static(buildPath));
+// const buildPath = path.join(__dirname, '../build');
+// app.use(express.static(buildPath));
 
-app.get('*', (req, res) => {
-  res.sendFile(path.join(buildPath, 'index.html'));
-});
+// app.get('*', (req, res) => {
+//   res.sendFile(path.join(buildPath, 'index.html'));
+// });
 
 app.use(function (req, res, next) {
   next(createError(404));
