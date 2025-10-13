@@ -5,6 +5,8 @@ const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const indexRouter = require('./routes/index');
 const usersRouter = require('./routes/users');
+const cors = require('cors');
+const { createProxyMiddleware } = require('http-proxy-middleware');
 
 const app = express();
 
@@ -20,12 +22,17 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/users', usersRouter);
 
-// const buildPath = path.join(__dirname, '../build');
-// app.use(express.static(buildPath));
+app.get('/products/:id', cors(), function (req, res, next) {
+  res.json({ msg: 'This is CORS-enabled for a Single Route' });
+});
 
-// app.get('*', (req, res) => {
-//   res.sendFile(path.join(buildPath, 'index.html'));
-// });
+app.use(
+  '/',
+  createProxyMiddleware({
+    target: 'http://localhost:3000',
+    changeOrigin: true,
+  }),
+);
 
 app.use(function (req, res, next) {
   next(createError(404));
