@@ -8,6 +8,7 @@ const indexRouter = require('./routes/index');
 const cors = require('cors');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const { startDb, client } = require('./database/db');
+const registerRouter = require('./routes/register');
 
 const app = express();
 
@@ -39,6 +40,8 @@ app.get('/users', async (req, res) => {
     res.status(500).json({ error: 'Internal server error' });
   }
 });
+
+app.use('/register', registerRouter);
 
 app.get('/products/:id', cors(), function (req, res, next) {
   res.json({ msg: 'This is CORS-enabled for a Single Route' });
