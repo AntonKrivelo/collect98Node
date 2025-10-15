@@ -5,12 +5,9 @@ const path = require('path');
 const cookieParser = require('cookie-parser');
 const logger = require('morgan');
 const indexRouter = require('./routes/index');
-const usersRouter = require('./routes/users');
 const cors = require('cors');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const { startDb, client } = require('./database/db');
-
-const bcrypt = require('bcrypt');
 
 const app = express();
 
