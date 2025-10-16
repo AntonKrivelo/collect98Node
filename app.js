@@ -43,9 +43,9 @@ app.get('/users', async (req, res) => {
   }
 });
 
-app.use('/register', registerRouter);
-app.use('/users/:id', deleteUserRouter);
-app.use('/login', loginRouter);
+app.use('/', registerRouter);
+app.use('/', deleteUserRouter);
+app.use('/', loginRouter);
 
 app.get('/products/:id', cors(), function (req, res, next) {
   res.json({ msg: 'This is CORS-enabled for a Single Route' });

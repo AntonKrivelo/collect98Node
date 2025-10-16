@@ -4,7 +4,7 @@ const { client } = require('../database/db');
 
 const router = express.Router();
 
-router.post('/', async (req, res) => {
+router.post('/register', async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
