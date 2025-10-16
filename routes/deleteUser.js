@@ -3,7 +3,7 @@ const { client } = require('../database/db');
 
 const router = express.Router();
 
-router.delete('/users/:id', async (req, res) => {
+router.delete('/', async (req, res) => {
   try {
     const { id } = req.params;
     if (!id) {

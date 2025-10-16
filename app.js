@@ -44,7 +44,7 @@ app.get('/users', async (req, res) => {
 });
 
 app.use('/register', registerRouter);
-app.use('/', deleteUserRouter);
+app.use('/users/:id', deleteUserRouter);
 app.use('/login', loginRouter);
 
 app.get('/products/:id', cors(), function (req, res, next) {
