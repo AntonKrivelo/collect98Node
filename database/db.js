@@ -26,7 +26,6 @@ const startDb = async () => {
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name TEXT NOT NULL,
         email TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL,
         password_hash TEXT NOT NULL,
         role TEXT DEFAULT 'user',
         status TEXT DEFAULT 'unverified',
