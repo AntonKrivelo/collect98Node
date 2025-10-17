@@ -11,6 +11,7 @@ const { startDb, client } = require('./database/db');
 const registerRouter = require('./routes/register');
 const deleteUserRouter = require('./routes/deleteUser');
 const loginRouter = require('./routes/login');
+const meRouter = require('./routes/me');
 
 const app = express();
 
@@ -46,6 +47,7 @@ app.get('/users', async (req, res) => {
 app.use('/', registerRouter);
 app.use('/', deleteUserRouter);
 app.use('/', loginRouter);
+app.use('/', meRouter);
 
 app.get('/products/:id', cors(), function (req, res, next) {
   res.json({ msg: 'This is CORS-enabled for a Single Route' });
