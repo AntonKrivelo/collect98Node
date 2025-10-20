@@ -12,6 +12,7 @@ const registerRouter = require('./routes/register');
 const deleteUserRouter = require('./routes/deleteUser');
 const loginRouter = require('./routes/login');
 const meRouter = require('./routes/me');
+const usersRouter = require('./routes/users');
 
 const app = express();
 
@@ -28,26 +29,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
 
-app.get('/users', async (req, res) => {
-  try {
-    const query = `
-      SELECT id, name, email, role, status, last_login, created_at
-      FROM users
-      ORDER BY created_at DESC;
-    `;
-    const result = await client.query(query);
-
-    res.status(200).json({ users: result.rows });
-  } catch (err) {
-    console.error('Error fetching users:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
 app.use('/', registerRouter);
 app.use('/', deleteUserRouter);
 app.use('/', loginRouter);
 app.use('/', meRouter);
+app.use('/', usersRouter);
 
 app.get('/products/:id', cors(), function (req, res, next) {
   res.json({ msg: 'This is CORS-enabled for a Single Route' });
