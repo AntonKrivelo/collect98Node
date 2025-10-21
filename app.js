@@ -8,10 +8,7 @@ const indexRouter = require('./routes/index');
 const cors = require('cors');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const { startDb, client } = require('./database/db');
-const registerRouter = require('./routes/register');
-const deleteUserRouter = require('./routes/deleteUser');
-const loginRouter = require('./routes/login');
-const meRouter = require('./routes/me');
+const authRouter = require('./routes/auth');
 const usersRouter = require('./routes/users');
 
 const app = express();
@@ -28,11 +25,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
-
-app.use('/', registerRouter);
-app.use('/', deleteUserRouter);
-app.use('/', loginRouter);
-app.use('/', meRouter);
+app.use('/', authRouter);
 app.use('/', usersRouter);
 
 app.get('/products/:id', cors(), function (req, res, next) {
