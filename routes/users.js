@@ -92,7 +92,7 @@ router.delete('/users/:id', async (req, res) => {
   }
 });
 
-router.delete('/users', async (req, res) => {
+router.delete('/users', authenticateAdmin, async (req, res) => {
   try {
     const { ids } = req.body;
 
