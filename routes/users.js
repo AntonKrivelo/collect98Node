@@ -92,6 +92,34 @@ router.delete('/users/:id', async (req, res) => {
   }
 });
 
+router.delete('/users', async (req, res) => {
+  try {
+    const { ids } = req.body;
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ ok: false, message: 'User IDs must be provided as an array.' });
+    }
+
+    const check = await client.query('SELECT id FROM users WHERE id = ANY($1)', [ids]);
+    if (check.rowCount === 0) {
+      return res.status(404).json({ ok: false, message: 'No users found with provided IDs.' });
+    }
+
+    await client.query('DELETE FROM users WHERE id = ANY($1)', [ids]);
+
+    res.json({
+      ok: true,
+      message: `Deleted ${ids.length} user(s) successfully.`,
+      deletedIds: ids,
+    });
+  } catch (err) {
+    console.error('Error deleting multiple users:', err);
+    res
+      .status(500)
+      .json({ ok: false, message: 'Server error while deleting users.', error: err.message });
+  }
+});
+
 router.patch('/admin/update-users', authenticateAdmin, async (req, res) => {
   const { users } = req.body;
 
