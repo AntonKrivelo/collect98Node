@@ -74,7 +74,7 @@ router.patch('/users', authenticateAdmin, async (req, res) => {
   }
 
   const validRoles = ['admin', 'user'];
-  const validStatuses = ['unverified', 'verified', 'blocked'];
+  const validStatuses = ['unverified', 'verified', 'blocked', 'active'];
 
   try {
     for (const user of users) {
@@ -108,7 +108,7 @@ router.patch('/users/:id', async (req, res) => {
     }
 
     const validRoles = ['user', 'admin'];
-    const validStatuses = ['unverified', 'verified', 'blocked'];
+    const validStatuses = ['unverified', 'verified', 'blocked', 'active'];
 
     if (role && !validRoles.includes(role)) {
       return res.status(400).json({ error: 'Invalid role value' });

@@ -28,7 +28,7 @@ const startDb = async () => {
         email TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
         role TEXT DEFAULT 'user',
-        status TEXT DEFAULT 'unverified',
+        status TEXT DEFAULT 'active',
         last_login TIMESTAMP,
         created_at TIMESTAMP DEFAULT NOW()
       );
