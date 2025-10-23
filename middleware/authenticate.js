@@ -23,18 +23,11 @@ const authenticate = async (req, res, next) => {
 
     const user = userResult.rows[0];
 
-    if (user.blocked) {
+    if (user.status === 'blocked') {
       return res.status(403).json({
         error: 'Account is blocked. Please contact administrator.',
       });
     }
-
-    // Или если используете поле status:
-    // if (user.status === 'blocked') {
-    //   return res.status(403).json({
-    //     error: 'Account is blocked. Please contact administrator.'
-    //   });
-    // }
 
     req.user = user;
     next();
