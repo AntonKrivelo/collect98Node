@@ -78,7 +78,7 @@ router.patch('/users', authenticateAdmin, async (req, res) => {
 
   try {
     for (const user of users) {
-      if (!user.id || !validRoles.includes(user.role) || !validStatuses.includes(user.status)) {
+      if (!user.id || (!validRoles.includes(user.role) && !validStatuses.includes(user.status))) {
         return res.status(400).json({
           error: `Invalid data for user ${user.id || 'unknown'}`,
         });
