@@ -18,6 +18,12 @@ router.post('/login', async (req, res) => {
     const result = await client.query('SELECT * FROM users WHERE email = $1', [email]);
     const user = result.rows[0];
 
+    if (user.status === 'blocked') {
+      return res.status(403).json({
+        error: 'Account is blocked. Please contact administrator.',
+      });
+    }
+
     if (!user || !(await bcrypt.compare(password, user.password_hash))) {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
