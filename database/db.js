@@ -34,7 +34,54 @@ const startDb = async () => {
       );
     `;
     await client.query(createUsersTableQuery);
-    console.log('"users" table created or already exists');
+    console.log('Table "users" created or already exists');
+
+    const createCategoryTableQuery = `
+      CREATE TABLE IF NOT EXISTS category (
+        id SERIAL PRIMARY KEY UNIQUE,
+        name TEXT UNIQUE NOT NULL
+      );
+    `;
+    await client.query(createCategoryTableQuery);
+    console.log('Table "category" created or already exists');
+
+    const createInventoryTableQuery = `
+      CREATE TABLE IF NOT EXISTS inventory (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        category_id INT REFERENCES category(id) ON DELETE SET NULL,
+        created_by UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `;
+    await client.query(createInventoryTableQuery);
+    console.log('Table "inventory" created or already exists');
+
+    const createInventoryField = `
+      CREATE TABLE IF NOT EXISTS inventory_field (
+        id SERIAL PRIMARY KEY,
+        inventory_id INT REFERENCES inventory(id) ON DELETE CASCADE,
+        field_name TEXT NOT NULL,
+        field_type TEXT NOT NULL,
+        is_visible BOOLEAN DEFAULT TRUE
+      );
+    `;
+    await client.query(createInventoryField);
+    console.log('Table "inventory_field" created or already exists');
+
+    const createInventoryItem = `
+      CREATE TABLE IF NOT EXISTS inventory_item (
+        id SERIAL PRIMARY KEY,
+        inventory_id INT REFERENCES inventory(id) ON DELETE CASCADE,
+        category_id INT REFERENCES category(id) ON DELETE SET NULL,
+        values JSONB NOT NULL,
+        created_at TIMESTAMP DEFAULT NOW()
+      );
+    `;
+    await client.query(createInventoryItem);
+    console.log('Table "inventory_item" created or already exists');
+
+    console.log('All tables created successfully!');
   } catch (err) {
     console.error('Database setup error:', err);
     process.exit(1);
