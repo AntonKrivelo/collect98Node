@@ -4,8 +4,6 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const authenticate = require('../middleware/authenticate');
-import validator from 'validator';
-
 const router = express.Router();
 
 router.post('/login', async (req, res) => {
@@ -64,9 +62,6 @@ router.post('/register', async (req, res) => {
     }
 
     const normalizedEmail = email.trim().toLowerCase();
-    if (!validator.isEmail(normalizedEmail)) {
-      return res.status(400).json({ ok: false, message: 'Invalid email format.' });
-    }
 
     const { rowCount } = await client.query('SELECT 1 FROM users WHERE LOWER(email) = $1', [
       normalizedEmail,
