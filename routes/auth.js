@@ -4,6 +4,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 require('dotenv').config();
 const authenticate = require('../middleware/authenticate');
+
 const router = express.Router();
 
 router.post('/login', async (req, res) => {
@@ -78,7 +79,7 @@ router.post('/register', async (req, res) => {
       VALUES ($1, $2, $3)
       RETURNING id, name, email, role, status, created_at;
     `;
-    const values = [name.trim(), normalizedEmail, hashedPassword];
+    const values = [name, email, hashedPassword];
     const result = await client.query(insertQuery, values);
 
     res.status(201).json({
