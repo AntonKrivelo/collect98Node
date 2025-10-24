@@ -84,11 +84,21 @@ router.patch('/users', authenticateAdmin, async (req, res) => {
         });
       }
 
-      await client.query('UPDATE users SET role = $2, status = $3 WHERE id = $1', [
-        user.id,
-        user.role,
-        user.status,
-      ]);
+      if (validRoles.includes(user.role)) {
+        await client.query('UPDATE users SET role = $2 WHERE id = $1', [user.id, user.role]);
+      }
+
+      if (validStatuses.includes(user.status)) {
+        await client.query('UPDATE users SET status = $2 WHERE id = $1', [user.id, user.status]);
+      }
+
+      if (validRoles.includes(user.role) && validStatuses.includes(user.status)) {
+        await client.query('UPDATE users SET role = $2, status = $3 WHERE id = $1', [
+          user.id,
+          user.role,
+          user.status,
+        ]);
+      }
     }
 
     res.status(200).json({ message: 'Users updated successfully.' });
