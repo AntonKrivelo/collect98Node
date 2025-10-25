@@ -37,48 +37,50 @@ const startDb = async () => {
     console.log('Table "users" created or already exists');
 
     const createCategoryTableQuery = `
-      CREATE TABLE IF NOT EXISTS category (
-        id SERIAL PRIMARY KEY UNIQUE,
-        name TEXT UNIQUE NOT NULL
-      );
+      CREATE TABLE IF NOT EXISTS categories (
+        id SERIAL PRIMARY KEY,
+        category TEXT UNIQUE NOT NULL
+    );
     `;
     await client.query(createCategoryTableQuery);
     console.log('Table "category" created or already exists');
 
-    const createInventoryTableQuery = `
-      CREATE TABLE IF NOT EXISTS inventory (
+    const createInventoriesTableQuery = `
+      CREATE TABLE IF NOT EXISTS inventories (
         id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
-        category_id INT REFERENCES category(id) ON DELETE SET NULL,
-        created_by UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
-        created_at TIMESTAMP DEFAULT NOW()
-      );
-    `;
-    await client.query(createInventoryTableQuery);
-    console.log('Table "inventory" created or already exists');
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        category_id INT REFERENCES categories(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT NOW(), 
+        CONSTRAINT unique_user_inventory UNIQUE (user_id, name)
+);
 
-    const createInventoryField = `
-      CREATE TABLE IF NOT EXISTS inventory_field (
-        id SERIAL PRIMARY KEY,
-        inventory_id INT REFERENCES inventory(id) ON DELETE CASCADE,
-        field_name TEXT NOT NULL,
-        field_type TEXT NOT NULL,
-        is_visible BOOLEAN DEFAULT TRUE
-      );
     `;
-    await client.query(createInventoryField);
+    await client.query(createInventoriesTableQuery);
+    console.log('Table "inventories" created or already exists');
+
+    const createInventoryFields = `
+      CREATE TABLE IF NOT EXISTS inventory_fields (
+        id SERIAL PRIMARY KEY,
+        inventory_id INT NOT NULL REFERENCES inventories(id) ON DELETE CASCADE,
+        field_name TEXT NOT NULL,
+        field_type TEXT NOT NULL, -- string | number | boolean | date
+        is_visible BOOLEAN DEFAULT TRUE,
+        CONSTRAINT unique_inventory_field UNIQUE (inventory_id, field_name)
+);
+    `;
+    await client.query(createInventoryFields);
     console.log('Table "inventory_field" created or already exists');
 
-    const createInventoryItem = `
-      CREATE TABLE IF NOT EXISTS inventory_item (
+    const createInventoryItems = `
+     CREATE TABLE IF NOT EXISTS inventory_items (
         id SERIAL PRIMARY KEY,
-        inventory_id INT REFERENCES inventory(id) ON DELETE CASCADE,
-        category_id INT REFERENCES category(id) ON DELETE SET NULL,
-        values JSONB NOT NULL,
+        inventory_id INT NOT NULL REFERENCES inventories(id) ON DELETE CASCADE,
+        values JSONB NOT NULL, -- ключи = field_name, значения = реальные данные
         created_at TIMESTAMP DEFAULT NOW()
-      );
+    );
     `;
-    await client.query(createInventoryItem);
+    await client.query(createInventoryItems);
     console.log('Table "inventory_item" created or already exists');
 
     console.log('All tables created successfully!');
