@@ -34,7 +34,56 @@ const startDb = async () => {
       );
     `;
     await client.query(createUsersTableQuery);
-    console.log('"users" table created or already exists');
+    console.log('Table "users" created or already exists');
+
+    const createCategoryTableQuery = `
+      CREATE TABLE IF NOT EXISTS categories (
+        id SERIAL PRIMARY KEY,
+        category TEXT UNIQUE NOT NULL
+    );
+    `;
+    await client.query(createCategoryTableQuery);
+    console.log('Table "category" created or already exists');
+
+    const createInventoriesTableQuery = `
+      CREATE TABLE IF NOT EXISTS inventories (
+        id SERIAL PRIMARY KEY,
+        name TEXT NOT NULL,
+        user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+        category_id INT REFERENCES categories(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT NOW(), 
+        CONSTRAINT unique_user_inventory UNIQUE (user_id, name)
+);
+
+    `;
+    await client.query(createInventoriesTableQuery);
+    console.log('Table "inventories" created or already exists');
+
+    const createInventoryFields = `
+      CREATE TABLE IF NOT EXISTS inventory_fields (
+        id SERIAL PRIMARY KEY,
+        inventory_id INT NOT NULL REFERENCES inventories(id) ON DELETE CASCADE,
+        field_name TEXT NOT NULL,
+        field_type TEXT NOT NULL, -- string | number | boolean | date
+        is_visible BOOLEAN DEFAULT TRUE,
+        CONSTRAINT unique_inventory_field UNIQUE (inventory_id, field_name)
+);
+    `;
+    await client.query(createInventoryFields);
+    console.log('Table "inventory_field" created or already exists');
+
+    const createInventoryItems = `
+     CREATE TABLE IF NOT EXISTS inventory_items (
+        id SERIAL PRIMARY KEY,
+        inventory_id INT NOT NULL REFERENCES inventories(id) ON DELETE CASCADE,
+        values JSONB NOT NULL, -- ключи = field_name, значения = реальные данные
+        created_at TIMESTAMP DEFAULT NOW()
+    );
+    `;
+    await client.query(createInventoryItems);
+    console.log('Table "inventory_item" created or already exists');
+
+    console.log('All tables created successfully!');
   } catch (err) {
     console.error('Database setup error:', err);
     process.exit(1);

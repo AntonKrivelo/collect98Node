@@ -78,17 +78,27 @@ router.patch('/users', authenticateAdmin, async (req, res) => {
 
   try {
     for (const user of users) {
-      if (!user.id || !validRoles.includes(user.role) || !validStatuses.includes(user.status)) {
+      if (!user.id || (!validRoles.includes(user.role) && !validStatuses.includes(user.status))) {
         return res.status(400).json({
           error: `Invalid data for user ${user.id || 'unknown'}`,
         });
       }
 
-      await client.query('UPDATE users SET role = $2, status = $3 WHERE id = $1', [
-        user.id,
-        user.role,
-        user.status,
-      ]);
+      if (validRoles.includes(user.role)) {
+        await client.query('UPDATE users SET role = $2 WHERE id = $1', [user.id, user.role]);
+      }
+
+      if (validStatuses.includes(user.status)) {
+        await client.query('UPDATE users SET status = $2 WHERE id = $1', [user.id, user.status]);
+      }
+
+      if (validRoles.includes(user.role) && validStatuses.includes(user.status)) {
+        await client.query('UPDATE users SET role = $2, status = $3 WHERE id = $1', [
+          user.id,
+          user.role,
+          user.status,
+        ]);
+      }
     }
 
     res.status(200).json({ message: 'Users updated successfully.' });
@@ -98,57 +108,4 @@ router.patch('/users', authenticateAdmin, async (req, res) => {
   }
 });
 
-router.patch('/users/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { role, status } = req.body;
-
-    if (!role && !status) {
-      return res.status(400).json({ error: 'Provide at least one field: role or status' });
-    }
-
-    const validRoles = ['user', 'admin'];
-    const validStatuses = ['unverified', 'verified', 'blocked', 'active'];
-
-    if (role && !validRoles.includes(role)) {
-      return res.status(400).json({ error: 'Invalid role value' });
-    }
-    if (status && !validStatuses.includes(status)) {
-      return res.status(400).json({ error: 'Invalid status value' });
-    }
-
-    const fields = [];
-    const values = [];
-    let index = 1;
-
-    if (role) {
-      fields.push(`role = $${index++}`);
-      values.push(role);
-    }
-    if (status) {
-      fields.push(`status = $${index++}`);
-      values.push(status);
-    }
-
-    values.push(id);
-
-    const query = `
-      UPDATE users
-      SET ${fields.join(', ')}
-      WHERE id = $${index}
-      RETURNING id, name, email, role, status;
-    `;
-
-    const result = await client.query(query, values);
-
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'User not found' });
-    }
-
-    res.json({ message: 'User updated successfully', user: result.rows[0] });
-  } catch (err) {
-    console.error('Error updating user:', err);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
 module.exports = router;
