@@ -10,6 +10,7 @@ const { createProxyMiddleware } = require('http-proxy-middleware');
 const { startDb, client } = require('./database/db');
 const authRouter = require('./routes/auth');
 const usersRouter = require('./routes/users');
+const categoriesRouter = require('./routes/categories');
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/', indexRouter);
 app.use('/', authRouter);
 app.use('/', usersRouter);
+app.use('/', categoriesRouter);
 
 app.get('/products/:id', cors(), function (req, res, next) {
   res.json({ msg: 'This is CORS-enabled for a Single Route' });
