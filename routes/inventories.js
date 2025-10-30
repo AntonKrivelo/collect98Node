@@ -132,33 +132,6 @@ router.get('/inventories/:userId', async (req, res) => {
   }
 });
 
-router.post('/categories', async (req, res) => {
-  const { category } = req.body;
-
-  if (!category) {
-    return res.status(400).json({ ok: false, message: 'Category name is required.' });
-  }
-
-  try {
-    const exists = await client.query('SELECT 1 FROM categories WHERE category = $1', [category]);
-    if (exists.rows.length > 0) {
-      return res.status(409).json({ ok: false, message: 'Category already exists.' });
-    }
-
-    const insert = await client.query(
-      'INSERT INTO categories (category) VALUES ($1) RETURNING id, category',
-      [category],
-    );
-
-    res.status(201).json({ ok: true, category: insert.rows[0] });
-  } catch (err) {
-    console.error('Error creating category:', err.message);
-    res
-      .status(500)
-      .json({ ok: false, message: 'Server error creating category.', error: err.message });
-  }
-});
-
 router.post('/inventories', async (req, res) => {
   const { userId, categoryId, name, fields } = req.body;
 
