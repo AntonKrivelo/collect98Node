@@ -54,4 +54,50 @@ router.post('/categories', async (req, res) => {
   }
 });
 
+router.post('/inventories/:inventoryId', async (req, res) => {
+  const { inventoryId } = req.params;
+  const { userId, values } = req.body;
+
+  if (!inventoryId || !userId || !values) {
+    return res.status(400).json({ error: 'Missing required parameters' });
+  }
+
+  try {
+    const invRes = await client.query(`SELECT user_id FROM inventories WHERE id = $1`, [
+      inventoryId,
+    ]);
+    if (invRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Inventory not found' });
+    }
+
+    const inventoryOwner = invRes.rows[0].user_id;
+    if (inventoryOwner !== userId) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const fieldsRes = await client.query(
+      `SELECT field_name FROM inventory_fields WHERE inventory_id = $1`,
+      [inventoryId],
+    );
+    const validFields = fieldsRes.rows.map((f) => f.field_name);
+
+    const invalidFields = Object.keys(values).filter((field) => !validFields.includes(field));
+    if (invalidFields.length > 0) {
+      return res.status(400).json({ error: `Invalid fields: ${invalidFields.join(', ')}` });
+    }
+
+    const insertItem = await client.query(
+      `INSERT INTO inventory_items (inventory_id, values)
+       VALUES ($1, $2::jsonb)
+       RETURNING id, inventory_id, values, created_at`,
+      [inventoryId, JSON.stringify(values)],
+    );
+
+    res.status(201).json({ item: insertItem.rows[0] });
+  } catch (err) {
+    console.error('Error is added element.:', err);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 module.exports = router;

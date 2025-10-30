@@ -132,6 +132,33 @@ router.get('/inventories/:userId', async (req, res) => {
   }
 });
 
+router.get('/inventories/:inventoryId/items', async (req, res) => {
+  const { inventoryId } = req.params;
+
+  try {
+    const invRes = await client.query(`SELECT * FROM inventories WHERE id = $1`, [inventoryId]);
+    if (invRes.rows.length === 0) {
+      return res.status(404).json({ error: 'Inventory not found' });
+    }
+
+    const itemsRes = await client.query(
+      `SELECT id, inventory_id, values, created_at
+       FROM inventory_items
+       WHERE inventory_id = $1
+       ORDER BY created_at DESC`,
+      [inventoryId],
+    );
+
+    res.status(200).json({
+      inventory_id: inventoryId,
+      items: itemsRes.rows,
+    });
+  } catch (err) {
+    console.error('Error loading inventory items:', err);
+    res.status(500).json({ error: 'server error' });
+  }
+});
+
 router.post('/inventories', async (req, res) => {
   const { userId, categoryId, name, fields } = req.body;
 
