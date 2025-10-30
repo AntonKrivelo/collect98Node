@@ -208,8 +208,8 @@ router.post('/inventories', async (req, res) => {
       inventory: {
         ...insertInventory.rows[0],
         category_name: categoryCheck.rows[0].category,
+        fields: createdFields,
       },
-      fields: createdFields,
     });
   } catch (error) {
     console.error('Inventory creation error:', error.message);
