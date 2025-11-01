@@ -93,6 +93,7 @@ router.get('/inventories/:userId', async (req, res) => {
     }
 
     const inventoryIds = inventories.map((inv) => inv.id);
+
     const fieldsQuery = `
       SELECT 
         inventory_id,
@@ -106,21 +107,40 @@ router.get('/inventories/:userId', async (req, res) => {
     `;
     const fieldsResult = await client.query(fieldsQuery, [inventoryIds]);
 
+    const itemsQuery = `
+      SELECT 
+        inventory_id,
+        id,
+        values,
+        created_at
+      FROM inventory_items
+      WHERE inventory_id = ANY($1)
+      ORDER BY created_at DESC;
+    `;
+    const itemsResult = await client.query(itemsQuery, [inventoryIds]);
+
     const fieldsByInventory = {};
     for (const field of fieldsResult.rows) {
       if (!fieldsByInventory[field.inventory_id]) fieldsByInventory[field.inventory_id] = [];
       fieldsByInventory[field.inventory_id].push(field);
     }
 
-    const inventoriesWithFields = inventories.map((inv) => ({
+    const itemsByInventory = {};
+    for (const item of itemsResult.rows) {
+      if (!itemsByInventory[item.inventory_id]) itemsByInventory[item.inventory_id] = [];
+      itemsByInventory[item.inventory_id].push(item);
+    }
+
+    const inventoriesWithData = inventories.map((inv) => ({
       ...inv,
       fields: fieldsByInventory[inv.id] || [],
+      items: itemsByInventory[inv.id] || [],
     }));
 
     res.status(200).json({
       ok: true,
-      total: inventoriesWithFields.length,
-      inventories: inventoriesWithFields,
+      total: inventoriesWithData.length,
+      inventories: inventoriesWithData,
     });
   } catch (err) {
     console.error('Error fetching user inventories:', err.message);
