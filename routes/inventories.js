@@ -19,7 +19,6 @@ router.get('/inventories', async (req, res) => {
       ORDER BY i.created_at DESC;
     `;
     const inventoriesResult = await client.query(inventoriesQuery);
-
     const inventories = inventoriesResult.rows;
 
     if (inventories.length === 0) {
@@ -27,6 +26,7 @@ router.get('/inventories', async (req, res) => {
     }
 
     const inventoryIds = inventories.map((inv) => inv.id);
+
     const fieldsQuery = `
       SELECT 
         inventory_id,
@@ -40,21 +40,41 @@ router.get('/inventories', async (req, res) => {
     `;
     const fieldsResult = await client.query(fieldsQuery, [inventoryIds]);
 
+    const itemsQuery = `
+      SELECT 
+        inventory_id,
+        id,
+        values,
+        created_at
+      FROM inventory_items
+      WHERE inventory_id = ANY($1)
+      ORDER BY created_at DESC;
+    `;
+    const itemsResult = await client.query(itemsQuery, [inventoryIds]);
+
     const fieldsByInventory = {};
     for (const field of fieldsResult.rows) {
       if (!fieldsByInventory[field.inventory_id]) fieldsByInventory[field.inventory_id] = [];
       fieldsByInventory[field.inventory_id].push(field);
     }
 
-    const inventoriesWithFields = inventories.map((inv) => ({
+    const itemsByInventory = {};
+    for (const item of itemsResult.rows) {
+      if (!itemsByInventory[item.inventory_id]) itemsByInventory[item.inventory_id] = [];
+      itemsByInventory[item.inventory_id].push(item);
+    }
+
+    const inventoriesWithData = inventories.map((inv) => ({
       ...inv,
       fields: fieldsByInventory[inv.id] || [],
+      items: itemsByInventory[inv.id] || [],
+      items_count: itemsByInventory[inv.id]?.length || 0,
     }));
 
     res.status(200).json({
       ok: true,
-      total: inventoriesWithFields.length,
-      inventories: inventoriesWithFields,
+      total: inventoriesWithData.length,
+      inventories: inventoriesWithData,
     });
   } catch (err) {
     console.error('Error fetching inventories:', err.message);
@@ -93,6 +113,7 @@ router.get('/inventories/:userId', async (req, res) => {
     }
 
     const inventoryIds = inventories.map((inv) => inv.id);
+
     const fieldsQuery = `
       SELECT 
         inventory_id,
@@ -106,21 +127,40 @@ router.get('/inventories/:userId', async (req, res) => {
     `;
     const fieldsResult = await client.query(fieldsQuery, [inventoryIds]);
 
+    const itemsQuery = `
+      SELECT 
+        inventory_id,
+        id,
+        values,
+        created_at
+      FROM inventory_items
+      WHERE inventory_id = ANY($1)
+      ORDER BY created_at DESC;
+    `;
+    const itemsResult = await client.query(itemsQuery, [inventoryIds]);
+
     const fieldsByInventory = {};
     for (const field of fieldsResult.rows) {
       if (!fieldsByInventory[field.inventory_id]) fieldsByInventory[field.inventory_id] = [];
       fieldsByInventory[field.inventory_id].push(field);
     }
 
-    const inventoriesWithFields = inventories.map((inv) => ({
+    const itemsByInventory = {};
+    for (const item of itemsResult.rows) {
+      if (!itemsByInventory[item.inventory_id]) itemsByInventory[item.inventory_id] = [];
+      itemsByInventory[item.inventory_id].push(item);
+    }
+
+    const inventoriesWithData = inventories.map((inv) => ({
       ...inv,
       fields: fieldsByInventory[inv.id] || [],
+      items: itemsByInventory[inv.id] || [],
     }));
 
     res.status(200).json({
       ok: true,
-      total: inventoriesWithFields.length,
-      inventories: inventoriesWithFields,
+      total: inventoriesWithData.length,
+      inventories: inventoriesWithData,
     });
   } catch (err) {
     console.error('Error fetching user inventories:', err.message);
@@ -275,6 +315,74 @@ router.post('/inventories/:inventoryId', async (req, res) => {
   } catch (err) {
     console.error('Error adding element:', err);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.delete('/inventories/:inventoryId', async (req, res) => {
+  const { inventoryId } = req.params;
+  const { userId } = req.body;
+
+  if (!userId) return res.status(400).json({ message: 'userId required' });
+
+  try {
+    const {
+      rows: [user],
+    } = await client.query(`SELECT role FROM users WHERE id = $1`, [userId]);
+    if (!user) return res.status(403).json({ message: 'User not found' });
+
+    const {
+      rows: [inventory],
+    } = await client.query(`SELECT user_id FROM inventories WHERE id = $1`, [inventoryId]);
+    if (!inventory) return res.status(404).json({ message: 'Inventory not found' });
+
+    if (inventory.user_id !== userId && user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    await client.query(`DELETE FROM inventories WHERE id = $1`, [inventoryId]);
+
+    return res.status(200).json({ message: 'Inventory and all related data removed' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+router.delete('/inventories/:inventoryId/items', async (req, res) => {
+  const { inventoryId } = req.params;
+  const { userId, itemIds } = req.body;
+
+  if (!userId || !Array.isArray(itemIds) || itemIds.length === 0) {
+    return res.status(400).json({ message: 'userId and itemIds required' });
+  }
+
+  try {
+    const {
+      rows: [user],
+    } = await client.query(`SELECT role FROM users WHERE id = $1`, [userId]);
+    if (!user) return res.status(403).json({ message: 'User not found' });
+
+    const {
+      rows: [inventory],
+    } = await client.query(`SELECT user_id FROM inventories WHERE id = $1`, [inventoryId]);
+    if (!inventory) return res.status(404).json({ message: 'Inventory not found' });
+
+    if (inventory.user_id !== userId && user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const deleteResult = await client.query(
+      `DELETE FROM inventory_items WHERE id = ANY($1::int[]) AND inventory_id = $2 RETURNING id`,
+      [itemIds, inventoryId],
+    );
+
+    return res.status(200).json({
+      message: 'Items removed successfully',
+      deletedCount: deleteResult.rowCount,
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 
