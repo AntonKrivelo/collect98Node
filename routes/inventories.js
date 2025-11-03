@@ -208,23 +208,28 @@ router.post('/inventories', async (req, res) => {
     return res.status(400).json({ error: 'At least one field is required' });
 
   try {
+    const catId = Number(categoryId);
+
     const categoryCheck = await client.query(`SELECT category FROM categories WHERE id = $1`, [
-      categoryId,
+      catId,
     ]);
     if (categoryCheck.rowCount === 0) return res.status(404).json({ error: 'Category not found.' });
 
     const existingInventory = await client.query(
-      `SELECT 1 FROM inventories WHERE user_id = $1 AND name = $2`,
-      [userId, name],
+      `SELECT 1 FROM inventories WHERE user_id = $1 AND category_id = $2 AND name = $3`,
+      [userId, catId, name],
     );
+
     if (existingInventory.rows.length > 0)
-      return res.status(400).json({ error: 'This user already has an inventory with that name.' });
+      return res
+        .status(400)
+        .json({ error: 'Inventory with this name already exists in this category.' });
 
     const insertInventory = await client.query(
       `INSERT INTO inventories (name, user_id, category_id)
        VALUES ($1, $2, $3)
        RETURNING id, name, user_id, category_id, created_at`,
-      [name, userId, categoryId],
+      [name, userId, catId],
     );
 
     const inventoryId = insertInventory.rows[0].id;
@@ -252,6 +257,11 @@ router.post('/inventories', async (req, res) => {
       },
     });
   } catch (error) {
+    if (error.code === '23505') {
+      return res.status(400).json({
+        error: 'Inventory with this name already exists in this category.',
+      });
+    }
     console.error('Inventory creation error:', error.message);
     return res.status(500).json({ error: 'Inventory creation error', details: error.message });
   }
