@@ -52,7 +52,7 @@ const startDb = async () => {
         user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
         category_id INT REFERENCES categories(id) ON DELETE SET NULL,
         created_at TIMESTAMP DEFAULT NOW(), 
-        CONSTRAINT unique_user_inventory UNIQUE (user_id, name)
+        CONSTRAINT unique_user_category_inventory UNIQUE (user_id, category_id, name)
 );
 
     `;
@@ -73,13 +73,13 @@ const startDb = async () => {
     console.log('Table "inventory_field" created or already exists');
 
     const createInventoryItems = `
-     CREATE TABLE IF NOT EXISTS inventory_items (
-        id SERIAL PRIMARY KEY,
-        inventory_id INT NOT NULL REFERENCES inventories(id) ON DELETE CASCADE,
-        values JSONB NOT NULL, -- ключи = field_name, значения = реальные данные
-        created_at TIMESTAMP DEFAULT NOW()
-    );
-    `;
+    CREATE TABLE IF NOT EXISTS inventory_items (
+      id SERIAL PRIMARY KEY,
+      inventory_id INT NOT NULL REFERENCES inventories(id) ON DELETE CASCADE,
+      values JSONB NOT NULL, -- keys = field_name, values = actual data
+      created_at TIMESTAMP DEFAULT NOW()
+  );
+`;
     await client.query(createInventoryItems);
     console.log('Table "inventory_item" created or already exists');
 
