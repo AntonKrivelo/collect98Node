@@ -20,6 +20,109 @@ router.get('/users', async (req, res) => {
   }
 });
 
+router.get('/users/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const userQuery = `
+      SELECT id, name, email, role, status, created_at, last_login
+      FROM users
+      WHERE id = $1;
+    `;
+    const userResult = await client.query(userQuery, [id]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({
+        ok: false,
+        message: 'users is not defined',
+      });
+    }
+
+    const user = userResult.rows[0];
+
+    const inventoriesQuery = `
+      SELECT 
+        i.id, 
+        i.name, 
+        i.created_at,
+        i.category_id,
+        c.category AS category_name
+      FROM inventories i
+      LEFT JOIN categories c ON i.category_id = c.id
+      WHERE i.user_id = $1
+      ORDER BY i.created_at DESC;
+    `;
+    const inventoriesResult = await client.query(inventoriesQuery, [id]);
+    const inventories = inventoriesResult.rows;
+
+    if (inventories.length === 0) {
+      return res.status(200).json({
+        ok: true,
+        user,
+        inventories: [],
+      });
+    }
+
+    const inventoryIds = inventories.map((inv) => inv.id);
+
+    const fieldsQuery = `
+      SELECT 
+        inventory_id,
+        id AS field_id,
+        field_name,
+        field_type,
+        is_visible
+      FROM inventory_fields
+      WHERE inventory_id = ANY($1);
+    `;
+    const fieldsResult = await client.query(fieldsQuery, [inventoryIds]);
+
+    const fieldsByInventory = {};
+    for (const field of fieldsResult.rows) {
+      if (!fieldsByInventory[field.inventory_id]) fieldsByInventory[field.inventory_id] = [];
+      fieldsByInventory[field.inventory_id].push(field);
+    }
+
+    const itemsQuery = `
+      SELECT 
+        id,
+        inventory_id,
+        values,
+        created_at
+      FROM inventory_items
+      WHERE inventory_id = ANY($1)
+      ORDER BY created_at DESC;
+    `;
+    const itemsResult = await client.query(itemsQuery, [inventoryIds]);
+
+    const itemsByInventory = {};
+    for (const item of itemsResult.rows) {
+      if (!itemsByInventory[item.inventory_id]) itemsByInventory[item.inventory_id] = [];
+      itemsByInventory[item.inventory_id].push(item);
+    }
+
+    const inventoriesWithData = inventories.map((inv) => ({
+      ...inv,
+      fields: fieldsByInventory[inv.id] || [],
+      items: itemsByInventory[inv.id] || [],
+    }));
+
+    res.status(200).json({
+      ok: true,
+      user,
+      total_inventories: inventoriesWithData.length,
+      inventories: inventoriesWithData,
+    });
+  } catch (err) {
+    console.error('Error is get users:', err.message);
+    res.status(500).json({
+      ok: false,
+      message: 'Server error when receiving user data',
+      error: err.message,
+    });
+  }
+});
+
 router.delete('/users/:id', async (req, res) => {
   try {
     const { id } = req.params;
