@@ -169,7 +169,7 @@ router.delete('/users', authenticateAdmin, async (req, res) => {
   }
 });
 
-router.patch('/users', authenticateAdmin, async (req, res) => {
+router.patch('/users', async (req, res) => {
   const { users } = req.body;
 
   if (!Array.isArray(users) || users.length === 0) {
