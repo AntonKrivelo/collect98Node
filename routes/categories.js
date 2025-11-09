@@ -54,4 +54,26 @@ router.post('/categories', async (req, res) => {
   }
 });
 
+router.delete('/categories/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id) {
+      return res.status(400).json({ ok: false, message: 'Category id not specified' });
+    }
+    const checkCategory = await client.query('SELECT 1 FROM categories WHERE id = $1', [id]);
+    if (checkCategory.rowCount === 0) {
+      return res.status(404).json({ ok: false, message: 'Category is not.' });
+    }
+    await client.query('DELETE FROM categories WHERE id = $1', [id]);
+    res.status(201).json({
+      ok: true,
+      message: 'The category successfully deleted.',
+      id: id,
+    });
+  } catch (err) {
+    console.error('Error is delete category.', err);
+    res.status(500).json({ ok: false, message: 'Error server.', error: err.message });
+  }
+});
+
 module.exports = router;
