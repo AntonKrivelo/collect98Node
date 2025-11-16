@@ -7,7 +7,7 @@ const router = express.Router();
 router.get('/users', async (req, res) => {
   try {
     const query = `
-      SELECT id, name, email, role, status, last_login, created_at
+      SELECT id, name, email, role, status, last_login, created_at, salesforce_integration
       FROM users
       ORDER BY created_at DESC;
     `;
@@ -25,7 +25,7 @@ router.get('/users/:id', async (req, res) => {
 
   try {
     const userQuery = `
-      SELECT id, name, email, role, status, created_at, last_login
+      SELECT id, name, email, role, status, created_at, last_login, salesforce_integration
       FROM users
       WHERE id = $1;
     `;

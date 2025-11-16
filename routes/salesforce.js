@@ -4,6 +4,7 @@ const fetch = require('node-fetch');
 const jsforce = require('jsforce');
 const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
+const { client } = require('../database/db');
 
 const {
   SF_CLIENT_ID,
@@ -143,9 +144,21 @@ router.get('/salesforce/callback', async (req, res) => {
 
 router.post('/api/salesforce/create', express.json(), async (req, res) => {
   try {
-    if (!savedToken) return res.status(400).json({ error: 'Connect Salesforce first via OAuth' });
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ error: 'Unauthorized: user not found in token' });
+    if (!savedToken) {
+      return res.status(400).json({ error: 'Connect Salesforce first via OAuth' });
+    }
+
+    console.log('Incoming body:', req.body);
+
+    const { userId } = req.body;
+    if (!userId) {
+      return res.status(400).json({ error: 'userId is required' });
+    }
+
+    const userCheck = await client.query('SELECT id FROM users WHERE id = $1', [userId]);
+
+    if (userCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found in database' });
     }
 
     const doCreate = async () => {
@@ -187,13 +200,15 @@ router.post('/api/salesforce/create', express.json(), async (req, res) => {
         contactId: contactRes.id,
       };
 
+      console.log('Created SF records:', result);
+
       await client.query(
         `
           UPDATE users
           SET salesforce_integration = $1
           WHERE id = $2
         `,
-        [result, req.user.id],
+        [result, userId],
       );
 
       return result;
@@ -203,22 +218,19 @@ router.post('/api/salesforce/create', express.json(), async (req, res) => {
       const result = await doCreate();
       return res.json(result);
     } catch (err) {
-      console.error('Create error first attempt', err);
-      const statusCode = err && err.statusCode;
+      console.error('Create error attempt #1:', err);
+      const statusCode = err?.statusCode;
 
-      if (
-        statusCode === 401 ||
-        /INVALID_SESSION_ID|INVALID_ACCESS_TOKEN/i.test(err.message || '')
-      ) {
+      if (statusCode === 401 || /INVALID_SESSION_ID|INVALID_ACCESS_TOKEN/i.test(err.message)) {
         try {
           await refreshAccessToken();
           const result = await doCreate();
           return res.json(result);
         } catch (err2) {
-          console.error('Retry after refresh failed', err2);
+          console.error('Failed after refresh:', err2);
           return res.status(500).json({
-            error: 'Salesforce create error after refresh',
-            details: err2.message || err2,
+            error: 'Salesforce create error after token refresh',
+            details: err2.message,
           });
         }
       }
@@ -226,7 +238,7 @@ router.post('/api/salesforce/create', express.json(), async (req, res) => {
       return res.status(500).json({ error: err.message || 'Salesforce create error' });
     }
   } catch (err) {
-    console.error('Salesforce create error top', err);
+    console.error('Salesforce create error (top-level):', err);
     res.status(500).json({ error: err.message || 'Salesforce create error' });
   }
 });
