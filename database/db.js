@@ -30,6 +30,7 @@ const startDb = async () => {
         role TEXT DEFAULT 'user',
         status TEXT DEFAULT 'active',
         last_login TIMESTAMP,
+        salesforce_integration JSONB DEFAULT NULL,
         created_at TIMESTAMP DEFAULT NOW()
       );
     `;
