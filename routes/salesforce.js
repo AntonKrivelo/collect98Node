@@ -34,6 +34,36 @@ function generateCodeChallenge(verifier) {
 
 router.use(cookieParser());
 
+async function refreshAccessToken() {
+  if (!savedToken?.refresh_token) {
+    throw new Error('No refresh token available');
+  }
+  const params = new URLSearchParams();
+  params.append('grant_type', 'refresh_token');
+  params.append('client_id', SF_CLIENT_ID);
+  if (SF_CLIENT_SECRET) params.append('client_secret', SF_CLIENT_SECRET);
+  params.append('refresh_token', savedToken.refresh_token);
+
+  const tokenRes = await fetch(`${SF_LOGIN_URL}/services/oauth2/token`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params,
+  });
+
+  const tokenJson = await tokenRes.json();
+  if (!tokenRes.ok) {
+    console.error('Refresh token failed', tokenJson);
+    throw new Error('Refresh token failed: ' + JSON.stringify(tokenJson));
+  }
+
+  savedToken.access_token = tokenJson.access_token;
+  if (tokenJson.refresh_token) savedToken.refresh_token = tokenJson.refresh_token;
+  savedToken.instance_url = tokenJson.instance_url || savedToken.instance_url;
+  savedToken.issued_at = tokenJson.issued_at;
+  savedToken.raw = tokenJson;
+  console.log('Access token refreshed');
+}
+
 router.get('/salesforce/auth', (req, res) => {
   try {
     const codeVerifier = generateCodeVerifier();
@@ -111,36 +141,6 @@ router.get('/salesforce/callback', async (req, res) => {
     res.status(500).send('Salesforce callback error');
   }
 });
-
-async function refreshAccessToken() {
-  if (!savedToken?.refresh_token) {
-    throw new Error('No refresh token available');
-  }
-  const params = new URLSearchParams();
-  params.append('grant_type', 'refresh_token');
-  params.append('client_id', SF_CLIENT_ID);
-  if (SF_CLIENT_SECRET) params.append('client_secret', SF_CLIENT_SECRET);
-  params.append('refresh_token', savedToken.refresh_token);
-
-  const tokenRes = await fetch(`${SF_LOGIN_URL}/services/oauth2/token`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params,
-  });
-
-  const tokenJson = await tokenRes.json();
-  if (!tokenRes.ok) {
-    console.error('Refresh token failed', tokenJson);
-    throw new Error('Refresh token failed: ' + JSON.stringify(tokenJson));
-  }
-
-  savedToken.access_token = tokenJson.access_token;
-  if (tokenJson.refresh_token) savedToken.refresh_token = tokenJson.refresh_token;
-  savedToken.instance_url = tokenJson.instance_url || savedToken.instance_url;
-  savedToken.issued_at = tokenJson.issued_at;
-  savedToken.raw = tokenJson;
-  console.log('Access token refreshed');
-}
 
 router.post('/api/salesforce/create', express.json(), async (req, res) => {
   try {
