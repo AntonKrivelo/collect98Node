@@ -144,7 +144,7 @@ router.get('/salesforce/callback', async (req, res) => {
 router.post('/api/salesforce/create', express.json(), async (req, res) => {
   try {
     if (!savedToken) return res.status(400).json({ error: 'Connect Salesforce first via OAuth' });
-    if (!req.userId) {
+    if (!req.body.userId) {
       return res.status(401).json({ error: 'user not found by userId' });
     }
 
@@ -193,7 +193,7 @@ router.post('/api/salesforce/create', express.json(), async (req, res) => {
           SET salesforce_integration = $1
           WHERE id = $2
         `,
-        [result, req.userId],
+        [result, req.body.userId],
       );
 
       return result;
