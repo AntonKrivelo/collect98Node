@@ -34,7 +34,7 @@ function generateCodeChallenge(verifier) {
 
 router.use(cookieParser());
 
-router.get('/salesforce/auth', authenticate, (req, res) => {
+router.get('/salesforce/auth', (req, res) => {
   try {
     const codeVerifier = generateCodeVerifier();
     const codeChallenge = generateCodeChallenge(codeVerifier);
