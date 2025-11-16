@@ -145,6 +145,9 @@ async function refreshAccessToken() {
 router.post('/api/salesforce/create', express.json(), async (req, res) => {
   try {
     if (!savedToken) return res.status(400).json({ error: 'Connect Salesforce first via OAuth' });
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({ error: 'Unauthorized: user not found in token' });
+    }
 
     const doCreate = async () => {
       const conn = new jsforce.Connection({
@@ -165,6 +168,7 @@ router.post('/api/salesforce/create', express.json(), async (req, res) => {
       }
 
       const accountRes = await conn.sobject('Account').create({ Name: company });
+
       const names = (name || '').trim().split(/\s+/);
       const firstName = names[0] || '';
       const lastName = names.slice(1).join(' ') || 'Unknown';
@@ -179,23 +183,21 @@ router.post('/api/salesforce/create', express.json(), async (req, res) => {
         AccountId: accountRes.id,
       });
 
+      const result = {
+        accountId: accountRes.id,
+        contactId: contactRes.id,
+      };
+
       await client.query(
         `
           UPDATE users
           SET salesforce_integration = $1
           WHERE id = $2
-          RETURNING id
         `,
-        [
-          {
-            accountId: accountRes.id,
-            contactId: contactRes.id,
-          },
-          req.user.id,
-        ],
+        [result, req.user.id],
       );
 
-      return { accountId: accountRes.id, contactId: contactRes.id };
+      return result;
     };
 
     try {
@@ -204,6 +206,7 @@ router.post('/api/salesforce/create', express.json(), async (req, res) => {
     } catch (err) {
       console.error('Create error first attempt', err);
       const statusCode = err && err.statusCode;
+
       if (
         statusCode === 401 ||
         /INVALID_SESSION_ID|INVALID_ACCESS_TOKEN/i.test(err.message || '')
@@ -220,6 +223,7 @@ router.post('/api/salesforce/create', express.json(), async (req, res) => {
           });
         }
       }
+
       return res.status(500).json({ error: err.message || 'Salesforce create error' });
     }
   } catch (err) {
