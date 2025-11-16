@@ -142,93 +142,26 @@ async function refreshAccessToken() {
   console.log('Access token refreshed');
 }
 
-router.post('/api/salesforce/create', express.json(), async (req, res) => {
+const getUserSalesforceToken = async (userId) => {
+  const r = await client.query('SELECT salesforce_integration FROM users WHERE id=$1', [userId]);
+  return r.rows[0]?.salesforce_integration || null;
+};
+
+router.post('/api/salesforce/create', authenticate, express.json(), async (req, res) => {
   try {
-    if (!savedToken) return res.status(400).json({ error: 'Connect Salesforce first via OAuth' });
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ error: 'Unauthorized: user not found in token' });
-    }
+    if (!req.user || !req.user.id) return res.status(401).json({ error: 'Unauthorized' });
 
-    const doCreate = async () => {
-      const conn = new jsforce.Connection({
-        instanceUrl: savedToken.instance_url,
-        accessToken: savedToken.access_token,
-        oauth2: new jsforce.OAuth2({
-          loginUrl: SF_LOGIN_URL,
-          clientId: SF_CLIENT_ID,
-          clientSecret: SF_CLIENT_SECRET,
-          redirectUri: SF_REDIRECT_URI,
-        }),
-      });
+    const saved = await getUserSalesforceToken(req.user.id);
+    if (!saved || !saved.access_token)
+      return res.status(400).json({ error: 'Connect Salesforce first via OAuth' });
 
-      const { name, email, company, jobTitle, phone, notes } = req.body;
-
-      if (!email || !company) {
-        return res.status(400).json({ error: 'Email and company are required' });
-      }
-
-      const accountRes = await conn.sobject('Account').create({ Name: company });
-
-      const names = (name || '').trim().split(/\s+/);
-      const firstName = names[0] || '';
-      const lastName = names.slice(1).join(' ') || 'Unknown';
-
-      const contactRes = await conn.sobject('Contact').create({
-        FirstName: firstName,
-        LastName: lastName,
-        Email: email,
-        Phone: phone || '',
-        Title: jobTitle || '',
-        Description: notes || '',
-        AccountId: accountRes.id,
-      });
-
-      const result = {
-        accountId: accountRes.id,
-        contactId: contactRes.id,
-      };
-
-      await client.query(
-        `
-          UPDATE users
-          SET salesforce_integration = $1
-          WHERE id = $2
-        `,
-        [result, req.user.id],
-      );
-
-      return result;
-    };
-
-    try {
-      const result = await doCreate();
-      return res.json(result);
-    } catch (err) {
-      console.error('Create error first attempt', err);
-      const statusCode = err && err.statusCode;
-
-      if (
-        statusCode === 401 ||
-        /INVALID_SESSION_ID|INVALID_ACCESS_TOKEN/i.test(err.message || '')
-      ) {
-        try {
-          await refreshAccessToken();
-          const result = await doCreate();
-          return res.json(result);
-        } catch (err2) {
-          console.error('Retry after refresh failed', err2);
-          return res.status(500).json({
-            error: 'Salesforce create error after refresh',
-            details: err2.message || err2,
-          });
-        }
-      }
-
-      return res.status(500).json({ error: err.message || 'Salesforce create error' });
-    }
+    const conn = new jsforce.Connection({
+      instanceUrl: saved.instance_url,
+      accessToken: saved.access_token,
+      oauth2: new jsforce.OAuth2({}),
+    });
   } catch (err) {
-    console.error('Salesforce create error top', err);
-    res.status(500).json({ error: err.message || 'Salesforce create error' });
+    console.error(err);
   }
 });
 
