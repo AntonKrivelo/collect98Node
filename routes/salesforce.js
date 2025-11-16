@@ -4,6 +4,7 @@ const fetch = require('node-fetch');
 const jsforce = require('jsforce');
 const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
+const authenticate = require('../middleware/authenticate');
 
 const {
   SF_CLIENT_ID,
@@ -141,12 +142,20 @@ async function refreshAccessToken() {
   console.log('Access token refreshed');
 }
 
-router.post('/api/salesforce/create', express.json(), async (req, res) => {
+router.post('/api/salesforce/create', authenticate, express.json(), async (req, res) => {
   try {
     if (!savedToken) return res.status(400).json({ error: 'Connect Salesforce first via OAuth' });
     if (!req.user || !req.user.id) {
       return res.status(401).json({ error: 'Unauthorized: user not found in token' });
     }
+
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role, status: user.status },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: '24h',
+      },
+    );
 
     const doCreate = async () => {
       const conn = new jsforce.Connection({
