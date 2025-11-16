@@ -187,7 +187,6 @@ router.post('/api/salesforce/create', express.json(), async (req, res) => {
         contactId: contactRes.id,
       };
 
-      // ✅ сохраняем интеграцию в БД
       await client.query(
         `
           UPDATE users
