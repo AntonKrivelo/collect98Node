@@ -34,7 +34,7 @@ function generateCodeChallenge(verifier) {
 
 router.use(cookieParser());
 
-router.get('/salesforce/auth', (req, res) => {
+router.get('/salesforce/auth', authenticate, (req, res) => {
   try {
     const codeVerifier = generateCodeVerifier();
     const codeChallenge = generateCodeChallenge(codeVerifier);
@@ -148,14 +148,6 @@ router.post('/api/salesforce/create', authenticate, express.json(), async (req, 
     if (!req.user || !req.user.id) {
       return res.status(401).json({ error: 'Unauthorized: user not found in token' });
     }
-
-    const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role, status: user.status },
-      process.env.JWT_SECRET,
-      {
-        expiresIn: '24h',
-      },
-    );
 
     const doCreate = async () => {
       const conn = new jsforce.Connection({
