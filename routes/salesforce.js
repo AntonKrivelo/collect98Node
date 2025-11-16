@@ -4,7 +4,7 @@ const fetch = require('node-fetch');
 const jsforce = require('jsforce');
 const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
-import { webToken } from './webToken';
+const webToken = require('./webToken');
 
 const {
   SF_CLIENT_ID,
