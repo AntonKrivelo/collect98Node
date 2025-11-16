@@ -4,7 +4,6 @@ const fetch = require('node-fetch');
 const jsforce = require('jsforce');
 const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
-const webToken = require('./webToken');
 
 const {
   SF_CLIENT_ID,
@@ -142,7 +141,7 @@ router.get('/salesforce/callback', async (req, res) => {
   }
 });
 
-router.post('/api/salesforce/create', webToken, express.json(), async (req, res) => {
+router.post('/api/salesforce/create', express.json(), async (req, res) => {
   try {
     if (!savedToken) return res.status(400).json({ error: 'Connect Salesforce first via OAuth' });
     if (!req.user || !req.user.id) {
