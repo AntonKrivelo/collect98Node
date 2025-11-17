@@ -211,4 +211,42 @@ router.patch('/users', authenticateAdmin, async (req, res) => {
   }
 });
 
+router.patch('/users/:id', express.json(), async (req, res) => {
+  const { id } = req.params;
+  const { salesforce_integration } = req.body;
+
+  if (salesforce_integration === undefined) {
+    return res.status(400).json({
+      error: 'Field "salesforce_integration" is required',
+    });
+  }
+
+  try {
+    const query = `
+      UPDATE users
+      SET salesforce_integration = $2
+      WHERE id = $1
+      RETURNING id, name, email, role, status, salesforce_integration, created_at, last_login;
+    `;
+
+    const result = await client.query(query, [id, salesforce_integration]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.status(200).json({
+      ok: true,
+      message: 'User updated successfully',
+      user: result.rows[0],
+    });
+  } catch (err) {
+    console.error('Error updating user:', err.message);
+    return res.status(500).json({
+      error: 'Server error updating user',
+      details: err.message,
+    });
+  }
+});
+
 module.exports = router;
