@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { Dropbox } = require('dropbox');
-// const { v4: uuidv4 } = require('uuid');
+const crypto = require('crypto');
 
 router.post('/upload-json', async (req, res) => {
   try {
@@ -10,7 +10,7 @@ router.post('/upload-json', async (req, res) => {
     const ticket = {
       ...data,
       created_at: new Date().toISOString(),
-      id: uuidv4(),
+      id: crypto.randomUUID(),
     };
 
     const filename = `ticket-${Date.now()}-${ticket.id.slice(0, 6)}.json`;
