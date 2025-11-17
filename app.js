@@ -13,6 +13,7 @@ const usersRouter = require('./routes/users');
 const categoriesRouter = require('./routes/categories');
 const inventoriesRouter = require('./routes/inventories');
 const salesforceRouter = require('./routes/salesforce');
+const ticketsRouter = require('./routes/tickets');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/', usersRouter);
 app.use('/', categoriesRouter);
 app.use('/', inventoriesRouter);
 app.use('/', salesforceRouter);
+app.use('/', ticketsRouter);
 
 app.get('/products/:id', cors(), function (req, res, next) {
   res.json({ msg: 'This is CORS-enabled for a Single Route' });
